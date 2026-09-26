@@ -30,6 +30,16 @@ _Avoid_: Open, Pending, Incomplete
 The **Status** of a **Todo** that has been marked done; it can be toggled back to **Active**.
 _Avoid_: Done, Finished, Closed
 
+### Ordering
+
+**Position**:
+A **Todo**'s place in the single, user-set order of the list; there is one order for all Todos, not one per **Tag**. A new Todo takes the last Position, and changing its **Status** never changes its Position.
+_Avoid_: Order, Rank, Sort order, Priority
+
+**Move**:
+Changing a **Todo**'s **Position** one step up or down among the Todos currently shown, placing it just past its shown neighbour; only the moved Todo's place changes relative to the others, including those hidden by the **Status selection** or **Tag selection**. The first shown Todo cannot move up and the last cannot move down.
+_Avoid_: Sort, Reorder, Drag
+
 ### Tags
 
 **Tag**:
