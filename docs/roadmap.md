@@ -26,6 +26,22 @@ Every decision behind this plan is on the map, [Wayfinder: Learning roadmap for 
 - **Frontend types mirror the API as it is now.** They grow with it (for example, a Todo's `tags` field arrives with the Tags steps).
 - **Migrations:** one per schema-changing step, named for the change. Never edit a merged migration. Read each one before applying it.
 
+## Turning the steps into tickets
+
+Once the map is done, `/to-spec` writes the spec and `/to-tickets` files the steps as GitHub issues. `/to-tickets` follows these rules instead of its defaults:
+
+- **One ticket per step, 0–35.** Steps are not re-cut into slices through every layer: the one-stack, one-sitting budget above is what keeps each one reviewable. Steps 34–35 are filed too, with `(optional)` in their titles.
+- **Each ticket is its step reshaped, with nothing re-derived.** File paths stay, because they were decided on the map and they tell Derek what to read.
+  - **Title:** `Step NN: <heading>`, the step's heading without the stack suffix.
+  - **Parent:** the spec issue.
+  - **What to build:** the Goal.
+  - **Concepts** and **Contents**: as written.
+  - **You do**, **Must confirm** and **Aside**: when the step has them.
+  - **Acceptance criteria:** the Done when checks, as checkboxes.
+  - **Blocked by:** the previous step.
+- **Ordering and labels.** The tickets are sub-issues of the spec, chained in a straight line with GitHub's native "blocked by" links. The only label is `ready-for-agent` (create it if it's missing). There are no milestones or stack labels.
+- **The tickets become canonical.** A small PR after `/to-tickets` removes the step sections from this file, leaving the delivery rules, the phases, and a link to the spec's tickets. From then on, a step that splits in two becomes a new ticket inserted into the chain.
+
 ## Phases
 
 | Phase | Steps |
