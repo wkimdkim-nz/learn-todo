@@ -1,0 +1,12 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug API",
+      "type": "dotnet",
+      "request": "launch",
+      "projectPath": "${workspaceFolder}/backend/src/TodoApi/TodoApi.csproj",
+      "launchConfigurationId": "TargetFramework=;http"
+    }
+  ]
+}
