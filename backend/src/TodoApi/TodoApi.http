@@ -4,3 +4,13 @@ GET {{TodoApi_HostAddress}}/api/todos
 Accept: application/json
 
 ###
+
+POST {{TodoApi_HostAddress}}/api/todos
+Content-Type: application/json
+
+{
+  "title": "  Buy milk  ",
+  "description": "   "
+}
+
+###
