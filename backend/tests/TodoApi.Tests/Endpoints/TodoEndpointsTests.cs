@@ -10,7 +10,7 @@ namespace TodoApi.Tests.Endpoints;
 // Each test gets its own host and its own empty database.
 public class TodoEndpointsTests : IAsyncDisposable
 {
-    static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
+    static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         Converters = { new JsonStringEnumConverter() },
     };
@@ -23,7 +23,7 @@ public class TodoEndpointsTests : IAsyncDisposable
     public ValueTask DisposeAsync() => factory.DisposeAsync();
 
     [Fact]
-    public async Task GetTodos_WhenNoneExist_ReturnsEmptyList()
+    public async Task GetTodos_NoTodos_ReturnsEmptyList()
     {
         Assert.Empty(await GetTodos());
     }
@@ -32,17 +32,17 @@ public class TodoEndpointsTests : IAsyncDisposable
     public async Task CreateTodo_ValidTitle_Returns201WithLocation()
     {
         var response = await client.PostAsJsonAsync(
-            "/api/todos", new CreateTodoRequest("Buy milk", null), Json, TestContext.Current.CancellationToken);
+            "/api/todos", new CreateTodoRequest("Buy milk", null), JsonOptions, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var created = await response.Content.ReadFromJsonAsync<TodoResponse>(Json, TestContext.Current.CancellationToken);
+        var created = await response.Content.ReadFromJsonAsync<TodoResponse>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.Equal("Buy milk", created!.Title);
         Assert.Equal(Status.Active, created.Status);
         Assert.Equal($"/api/todos/{created.Id}", response.Headers.Location?.ToString());
     }
 
     [Fact]
-    public async Task GetTodos_AfterSeveralCreates_KeepsCreationOrder()
+    public async Task GetTodos_AfterSeveralCreates_ListsEachNewTodoLast()
     {
         await CreateTodo("First");
         await CreateTodo("Second");
@@ -54,7 +54,7 @@ public class TodoEndpointsTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task GetTodos_Json_IsCamelCaseWithStringStatusAndNoPosition()
+    public async Task GetTodos_OneTodo_SerializesCamelCaseWithStringStatusAndNoPosition()
     {
         await CreateTodo("Buy milk");
 
@@ -68,12 +68,12 @@ public class TodoEndpointsTests : IAsyncDisposable
     async Task<TodoResponse> CreateTodo(string title)
     {
         var response = await client.PostAsJsonAsync(
-            "/api/todos", new CreateTodoRequest(title, null), Json, TestContext.Current.CancellationToken);
+            "/api/todos", new CreateTodoRequest(title, null), JsonOptions, TestContext.Current.CancellationToken);
         response.EnsureSuccessStatusCode();
 
-        return (await response.Content.ReadFromJsonAsync<TodoResponse>(Json, TestContext.Current.CancellationToken))!;
+        return (await response.Content.ReadFromJsonAsync<TodoResponse>(JsonOptions, TestContext.Current.CancellationToken))!;
     }
 
     async Task<List<TodoResponse>> GetTodos() =>
-        (await client.GetFromJsonAsync<List<TodoResponse>>("/api/todos", Json, TestContext.Current.CancellationToken))!;
+        (await client.GetFromJsonAsync<List<TodoResponse>>("/api/todos", JsonOptions, TestContext.Current.CancellationToken))!;
 }

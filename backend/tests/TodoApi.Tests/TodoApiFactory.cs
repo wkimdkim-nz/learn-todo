@@ -15,6 +15,7 @@ public class TodoApiFactory : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        // Not Development, so Program.cs skips its own Migrate() and OpenAPI; CreateHost migrates instead.
         builder.UseEnvironment("Testing");
 
         builder.ConfigureServices(services =>
