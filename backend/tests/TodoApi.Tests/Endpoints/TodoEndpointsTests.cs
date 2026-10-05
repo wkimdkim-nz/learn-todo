@@ -65,6 +65,56 @@ public class TodoEndpointsTests : IAsyncDisposable
         Assert.Equal("Active", todo.GetProperty("status").GetString());
     }
 
+    [Fact]
+    public async Task UpdateTodo_ExistingTodo_ReplacesTitleAndDescription()
+    {
+        var created = await CreateTodo("Buy milk");
+
+        var response = await client.PutAsJsonAsync(
+            $"/api/todos/{created.Id}", new UpdateTodoRequest("  Buy oat milk  ", "  From the corner shop  "),
+            JsonOptions, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var expected = new TodoResponse(created.Id, "Buy oat milk", "From the corner shop", Status.Active);
+        Assert.Equal(expected, await response.Content.ReadFromJsonAsync<TodoResponse>(JsonOptions, TestContext.Current.CancellationToken));
+        Assert.Equal(expected, await client.GetFromJsonAsync<TodoResponse>(
+            $"/api/todos/{created.Id}", JsonOptions, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task DeleteTodo_ExistingTodo_Returns204AndGetReturns404()
+    {
+        var created = await CreateTodo("Buy milk");
+
+        var deleteResponse = await client.DeleteAsync($"/api/todos/{created.Id}", TestContext.Current.CancellationToken);
+        var getResponse = await client.GetAsync($"/api/todos/{created.Id}", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
+        Assert.Empty(await GetTodos());
+    }
+
+    [Fact]
+    public async Task GetTodo_UnknownId_Returns404ProblemDetails()
+    {
+        var response = await client.GetAsync($"/api/todos/{Guid.NewGuid()}", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+        var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).RootElement;
+        Assert.Equal(404, problem.GetProperty("status").GetInt32());
+    }
+
+    [Fact]
+    public async Task UpdateTodo_UnknownId_Returns404()
+    {
+        var response = await client.PutAsJsonAsync(
+            $"/api/todos/{Guid.NewGuid()}", new UpdateTodoRequest("Buy milk", null),
+            JsonOptions, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
     async Task<TodoResponse> CreateTodo(string title)
     {
         var response = await client.PostAsJsonAsync(
