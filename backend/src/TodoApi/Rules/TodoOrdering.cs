@@ -13,6 +13,7 @@ public enum MoveSide
 /// <paramref name="ShiftFrom"/> to <paramref name="ShiftTo"/> (inclusive) shifts by
 /// <paramref name="ShiftBy"/>, and the moved Todo takes <paramref name="NewPosition"/>.
 /// The range is empty when <paramref name="ShiftFrom"/> is greater than <paramref name="ShiftTo"/>.
+/// <paramref name="NewPosition"/> can fall inside the range, so the shift must leave out the moved Todo.
 /// </summary>
 public record MovePlan(int NewPosition, int ShiftFrom, int ShiftTo, int ShiftBy);
 
@@ -30,8 +31,7 @@ public static class TodoOrdering
     /// </example>
     public static MovePlan Move(Todo moved, Todo target, MoveSide side)
     {
-        // Positions are unique, so a shared Position means the same Todo.
-        if (moved.Position == target.Position)
+        if (moved.Id == target.Id)
         {
             throw new ArgumentException("A Todo can't move next to itself.", nameof(target));
         }

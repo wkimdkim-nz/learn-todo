@@ -12,7 +12,7 @@ public class TodoOrderingTests
 
         var plan = TodoOrdering.Move(todos["B"], todos["A"], MoveSide.Before);
 
-        Assert.Equal("B, A, h", OrderAfter(plan, todos["B"], todos));
+        Assert.Equal("B, A, h", TitlesAfter(plan, todos["B"], todos));
     }
 
     [Fact]
@@ -22,7 +22,7 @@ public class TodoOrderingTests
 
         var plan = TodoOrdering.Move(todos["A"], todos["B"], MoveSide.After);
 
-        Assert.Equal("h, B, A", OrderAfter(plan, todos["A"], todos));
+        Assert.Equal("h, B, A", TitlesAfter(plan, todos["A"], todos));
     }
 
     [Theory]
@@ -36,19 +36,19 @@ public class TodoOrderingTests
 
         var plan = TodoOrdering.Move(todos[moved], todos[target], side);
 
-        Assert.Equal(expected, OrderAfter(plan, todos[moved], todos));
+        Assert.Equal(expected, TitlesAfter(plan, todos[moved], todos));
     }
 
     [Theory]
     [InlineData("D", MoveSide.Before, "A", "D, A, B, C")]
     [InlineData("A", MoveSide.After, "D", "B, C, D, A")]
-    public void Move_PastFirstOrLast_BecomesFirstOrLast(string moved, MoveSide side, string target, string expected)
+    public void Move_BeforeFirstOrAfterLast_BecomesFirstOrLast(string moved, MoveSide side, string target, string expected)
     {
         var todos = Todos("A", "B", "C", "D");
 
         var plan = TodoOrdering.Move(todos[moved], todos[target], side);
 
-        Assert.Equal(expected, OrderAfter(plan, todos[moved], todos));
+        Assert.Equal(expected, TitlesAfter(plan, todos[moved], todos));
     }
 
     [Theory]
@@ -60,7 +60,7 @@ public class TodoOrderingTests
 
         var plan = TodoOrdering.Move(todos[moved], todos[target], side);
 
-        Assert.Equal(expected, OrderAfter(plan, todos[moved], todos));
+        Assert.Equal(expected, TitlesAfter(plan, todos[moved], todos));
     }
 
     [Fact]
@@ -70,8 +70,7 @@ public class TodoOrderingTests
 
         var plan = TodoOrdering.Move(todos["B"], todos["A"], MoveSide.After);
 
-        Assert.Equal(todos["B"].Position, plan.NewPosition);
-        Assert.True(plan.ShiftFrom > plan.ShiftTo, "No other Todo should shift.");
+        Assert.Equal(new Dictionary<string, int> { ["A"] = 1, ["B"] = 2, ["C"] = 3 }, PositionsAfter(plan, todos["B"], todos));
     }
 
     [Fact]
@@ -88,20 +87,24 @@ public class TodoOrderingTests
 
     static Dictionary<string, Todo> Todos(params (string Title, int Position)[] todos) =>
         todos
-            .Select(t => new Todo { Title = t.Title, Position = t.Position })
+            .Select(t => new Todo { Id = Guid.NewGuid(), Title = t.Title, Position = t.Position })
             .ToDictionary(t => t.Title);
 
-    // Applies the plan the way the Move endpoint will in SQL, and lists the Titles in their new order.
-    static string OrderAfter(MovePlan plan, Todo moved, Dictionary<string, Todo> todos)
+    // Applies the plan the way the Move endpoint will in SQL, and gives each Todo's new Position by Title.
+    static Dictionary<string, int> PositionsAfter(MovePlan plan, Todo moved, Dictionary<string, Todo> todos)
     {
         int PositionAfter(Todo todo) =>
             todo == moved ? plan.NewPosition
             : todo.Position >= plan.ShiftFrom && todo.Position <= plan.ShiftTo ? todo.Position + plan.ShiftBy
             : todo.Position;
 
-        var positions = todos.Values.Select(PositionAfter).ToList();
-        Assert.Distinct(positions);
+        var positions = todos.Values.ToDictionary(t => t.Title, PositionAfter);
+        Assert.Distinct(positions.Values);
 
-        return string.Join(", ", todos.Values.OrderBy(PositionAfter).Select(t => t.Title));
+        return positions;
     }
+
+    // The Titles in their Position order after the plan is applied.
+    static string TitlesAfter(MovePlan plan, Todo moved, Dictionary<string, Todo> todos) =>
+        string.Join(", ", PositionsAfter(plan, moved, todos).OrderBy(p => p.Value).Select(p => p.Key));
 }
