@@ -17,7 +17,7 @@ builder.Services.AddDbContext<TodoDbContext>(options =>
 
 var app = builder.Build();
 
-// Gives an empty error response, such as a 404, a ProblemDetails body.
+// Writes a ProblemDetails body into error responses that have none, such as a 404.
 app.UseStatusCodePages();
 
 // Configure the HTTP request pipeline.

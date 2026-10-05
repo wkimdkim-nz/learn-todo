@@ -25,7 +25,7 @@ public static class TodoEndpoints
     {
         var todos = await db.Todos
             .OrderBy(t => t.Position)
-            .Select(t => new TodoResponse(t.Id, t.Title, t.Description, t.Status))
+            .Select(t => ToResponse(t))
             .ToListAsync();
 
         return TypedResults.Ok(todos);
@@ -38,7 +38,7 @@ public static class TodoEndpoints
         var todo = new Todo
         {
             Title = request.Title.Trim(),
-            Description = CleanDescription(request.Description),
+            Description = TrimOrNull(request.Description),
             Status = Status.Active,
             Position = lastPosition + 1,
         };
@@ -65,7 +65,7 @@ public static class TodoEndpoints
         }
 
         todo.Title = request.Title.Trim();
-        todo.Description = CleanDescription(request.Description);
+        todo.Description = TrimOrNull(request.Description);
         await db.SaveChangesAsync();
 
         return TypedResults.Ok(ToResponse(todo));
@@ -79,7 +79,7 @@ public static class TodoEndpoints
     }
 
     // A blank Description is stored as null, so "no Description" has one spelling.
-    static string? CleanDescription(string? description)
+    static string? TrimOrNull(string? description)
     {
         var trimmed = description?.Trim();
         return string.IsNullOrEmpty(trimmed) ? null : trimmed;
