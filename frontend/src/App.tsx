@@ -37,7 +37,7 @@ function App() {
 
       <main className="flex min-w-0 flex-1 flex-col">
         <header className="border-b border-stone-200 px-6 py-4">
-          <h1 className="text-xl font-semibold">Everything</h1>
+          <h1 className="text-xl font-semibold">Todos</h1>
         </header>
         <TodoList todos={sampleTodos} />
       </main>

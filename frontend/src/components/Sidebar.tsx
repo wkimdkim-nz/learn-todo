@@ -7,7 +7,7 @@ export function Sidebar() {
 
       <nav className="flex flex-col gap-0.5">
         <SectionLabel>Status</SectionLabel>
-        <NavItem active>Any status</NavItem>
+        <NavItem selected>Any status</NavItem>
         <NavItem>Active</NavItem>
         <NavItem>Completed</NavItem>
       </nav>
@@ -28,15 +28,15 @@ function SectionLabel({ children }: SectionLabelProps) {
 }
 
 type NavItemProps = {
-  active?: boolean;
+  selected?: boolean;
   children: ReactNode;
 };
 
-function NavItem({ active = false, children }: NavItemProps) {
+function NavItem({ selected = false, children }: NavItemProps) {
   return (
     <div
       className={`rounded-md px-2 py-1.5 text-sm ${
-        active ? "bg-white font-medium shadow-sm" : "text-stone-600"
+        selected ? "bg-white font-medium shadow-sm" : "text-stone-600"
       }`}
     >
       {children}

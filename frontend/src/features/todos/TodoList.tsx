@@ -22,7 +22,7 @@ function TodoRow({ todo }: TodoRowProps) {
   const completed = todo.status === "Completed";
 
   return (
-    <li className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-stone-100">
+    <li className="flex items-center gap-3 rounded-md px-3 py-2">
       <input type="checkbox" className="size-4 accent-indigo-600" checked={completed} readOnly />
       <span className={`flex-1 truncate text-sm ${completed ? "text-stone-400 line-through" : ""}`}>
         {todo.title}
