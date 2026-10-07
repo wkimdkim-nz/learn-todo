@@ -1,7 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TodoApi.Data;
@@ -140,6 +142,21 @@ public class TodoEndpointsTests : IAsyncDisposable
         var errors = (await ReadProblem(response)).GetProperty("errors");
         Assert.Equal(["description"], errors.EnumerateObject().Select(p => p.Name));
         Assert.Null((await GetTodos()).Single().Description);
+    }
+
+    [Fact]
+    public async Task CreateTodo_UnreadableBodyWhenBindingThrows_Returns400ProblemDetails()
+    {
+        // Development makes binding throw on a body it can't read, rather than answer 400 itself.
+        var throwingClient = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+            services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true))).CreateClient();
+
+        var response = await throwingClient.PostAsync(
+            "/api/todos", new StringContent("""{"title":123}""", Encoding.UTF8, "application/json"),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(400, (await ReadProblem(response)).GetProperty("status").GetInt32());
     }
 
     [Fact]

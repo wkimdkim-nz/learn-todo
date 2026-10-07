@@ -30,7 +30,13 @@ builder.Services.AddDbContext<TodoDbContext>(options =>
 var app = builder.Build();
 
 // Turns an unhandled exception into a 500 ProblemDetails body, without the exception's details.
-app.UseExceptionHandler();
+// A BadHttpRequestException keeps its own status: Development throws one for an unreadable body.
+app.UseExceptionHandler(new ExceptionHandlerOptions
+{
+    StatusCodeSelector = exception => exception is BadHttpRequestException badRequest
+        ? badRequest.StatusCode
+        : StatusCodes.Status500InternalServerError,
+});
 
 // Writes a ProblemDetails body into error responses that have none, such as a 404.
 app.UseStatusCodePages();
