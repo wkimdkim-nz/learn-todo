@@ -1,7 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using TodoApi.Data;
 using TodoApi.Dtos;
 using TodoApi.Entities;
 
@@ -100,9 +105,7 @@ public class TodoEndpointsTests : IAsyncDisposable
         var response = await client.GetAsync($"/api/todos/{Guid.NewGuid()}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
-        var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).RootElement;
-        Assert.Equal(404, problem.GetProperty("status").GetInt32());
+        Assert.Equal(404, (await ReadProblem(response)).GetProperty("status").GetInt32());
     }
 
     [Fact]
@@ -113,6 +116,64 @@ public class TodoEndpointsTests : IAsyncDisposable
             JsonOptions, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateTodo_BlankTitle_Returns400WithTitleError()
+    {
+        var response = await client.PostAsJsonAsync(
+            "/api/todos", new CreateTodoRequest("   ", null), JsonOptions, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var errors = (await ReadProblem(response)).GetProperty("errors");
+        Assert.Equal(["title"], errors.EnumerateObject().Select(p => p.Name));
+    }
+
+    [Fact]
+    public async Task UpdateTodo_DescriptionOver2000Characters_Returns400WithDescriptionError()
+    {
+        var created = await CreateTodo("Buy milk");
+
+        var response = await client.PutAsJsonAsync(
+            $"/api/todos/{created.Id}", new UpdateTodoRequest("Buy milk", new string('a', Todo.DescriptionMaxLength + 1)),
+            JsonOptions, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var errors = (await ReadProblem(response)).GetProperty("errors");
+        Assert.Equal(["description"], errors.EnumerateObject().Select(p => p.Name));
+        Assert.Null((await GetTodos()).Single().Description);
+    }
+
+    [Fact]
+    public async Task CreateTodo_UnreadableBodyWhenBindingThrows_Returns400ProblemDetails()
+    {
+        // Development makes binding throw on a body it can't read, rather than answer 400 itself.
+        var throwingClient = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+            services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true))).CreateClient();
+
+        var response = await throwingClient.PostAsync(
+            "/api/todos", new StringContent("""{"title":123}""", Encoding.UTF8, "application/json"),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(400, (await ReadProblem(response)).GetProperty("status").GetInt32());
+    }
+
+    [Fact]
+    public async Task GetTodos_DatabaseFails_Returns500ProblemDetails()
+    {
+        using (var scope = factory.Services.CreateScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<TodoDbContext>().Database
+                .ExecuteSqlRawAsync("DROP TABLE \"Todos\"", TestContext.Current.CancellationToken);
+        }
+
+        var response = await client.GetAsync("/api/todos", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        var problem = await ReadProblem(response);
+        Assert.Equal(500, problem.GetProperty("status").GetInt32());
+        Assert.DoesNotContain("Todos", problem.GetRawText());
     }
 
     async Task<TodoResponse> CreateTodo(string title)
@@ -126,4 +187,10 @@ public class TodoEndpointsTests : IAsyncDisposable
 
     async Task<List<TodoResponse>> GetTodos() =>
         (await client.GetFromJsonAsync<List<TodoResponse>>("/api/todos", JsonOptions, TestContext.Current.CancellationToken))!;
+
+    static async Task<JsonElement> ReadProblem(HttpResponseMessage response)
+    {
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+        return JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).RootElement;
+    }
 }
