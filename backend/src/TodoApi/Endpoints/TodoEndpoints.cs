@@ -14,6 +14,9 @@ public static class TodoEndpoints
 
         group.MapGet("/", GetTodos);
         group.MapPost("/", CreateTodo);
+        group.MapGet("/{id:guid}", GetTodo);
+        group.MapPut("/{id:guid}", UpdateTodo);
+        group.MapDelete("/{id:guid}", DeleteTodo);
 
         return app;
     }
@@ -22,6 +25,7 @@ public static class TodoEndpoints
     {
         var todos = await db.Todos
             .OrderBy(t => t.Position)
+            // Inline, not ToResponse: EF can turn this into SQL selecting only these columns.
             .Select(t => new TodoResponse(t.Id, t.Title, t.Description, t.Status))
             .ToListAsync();
 
@@ -30,13 +34,12 @@ public static class TodoEndpoints
 
     static async Task<Created<TodoResponse>> CreateTodo(CreateTodoRequest request, TodoDbContext db)
     {
-        var description = request.Description?.Trim();
         var lastPosition = await db.Todos.MaxAsync(t => (int?)t.Position) ?? 0;
 
         var todo = new Todo
         {
             Title = request.Title.Trim(),
-            Description = string.IsNullOrEmpty(description) ? null : description,
+            Description = TrimOrNull(request.Description),
             Status = Status.Active,
             Position = lastPosition + 1,
         };
@@ -44,7 +47,44 @@ public static class TodoEndpoints
         db.Todos.Add(todo);
         await db.SaveChangesAsync();
 
-        var response = new TodoResponse(todo.Id, todo.Title, todo.Description, todo.Status);
-        return TypedResults.Created($"/api/todos/{todo.Id}", response);
+        return TypedResults.Created($"/api/todos/{todo.Id}", ToResponse(todo));
     }
+
+    static async Task<Results<Ok<TodoResponse>, NotFound>> GetTodo(Guid id, TodoDbContext db)
+    {
+        var todo = await db.Todos.FindAsync(id);
+
+        return todo is null ? TypedResults.NotFound() : TypedResults.Ok(ToResponse(todo));
+    }
+
+    static async Task<Results<Ok<TodoResponse>, NotFound>> UpdateTodo(Guid id, UpdateTodoRequest request, TodoDbContext db)
+    {
+        var todo = await db.Todos.FindAsync(id);
+        if (todo is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        todo.Title = request.Title.Trim();
+        todo.Description = TrimOrNull(request.Description);
+        await db.SaveChangesAsync();
+
+        return TypedResults.Ok(ToResponse(todo));
+    }
+
+    static async Task<Results<NoContent, NotFound>> DeleteTodo(Guid id, TodoDbContext db)
+    {
+        var deleted = await db.Todos.Where(t => t.Id == id).ExecuteDeleteAsync();
+
+        return deleted == 0 ? TypedResults.NotFound() : TypedResults.NoContent();
+    }
+
+    // A blank Description is stored as null, so "no Description" has one spelling.
+    static string? TrimOrNull(string? description)
+    {
+        var trimmed = description?.Trim();
+        return string.IsNullOrEmpty(trimmed) ? null : trimmed;
+    }
+
+    static TodoResponse ToResponse(Todo todo) => new(todo.Id, todo.Title, todo.Description, todo.Status);
 }

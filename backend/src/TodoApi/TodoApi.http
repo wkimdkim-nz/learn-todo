@@ -5,6 +5,7 @@ Accept: application/json
 
 ###
 
+# @name createTodo
 POST {{TodoApi_HostAddress}}/api/todos
 Content-Type: application/json
 
@@ -12,5 +13,33 @@ Content-Type: application/json
   "title": "  Buy milk  ",
   "description": "   "
 }
+
+###
+
+# The requests below use the id of the Todo the POST above created, so send that first.
+@todoId = {{createTodo.response.body.$.id}}
+
+GET {{TodoApi_HostAddress}}/api/todos/{{todoId}}
+Accept: application/json
+
+###
+
+PUT {{TodoApi_HostAddress}}/api/todos/{{todoId}}
+Content-Type: application/json
+
+{
+  "title": "Buy oat milk",
+  "description": "From the corner shop"
+}
+
+###
+
+DELETE {{TodoApi_HostAddress}}/api/todos/{{todoId}}
+
+###
+
+# After the DELETE above, this is a 404 with a ProblemDetails body.
+GET {{TodoApi_HostAddress}}/api/todos/{{todoId}}
+Accept: application/json
 
 ###
