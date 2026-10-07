@@ -16,6 +16,16 @@ Content-Type: application/json
 
 ###
 
+# A blank Title is a 400 with a ProblemDetails body whose errors are keyed by field.
+POST {{TodoApi_HostAddress}}/api/todos
+Content-Type: application/json
+
+{
+  "title": "   "
+}
+
+###
+
 # The requests below use the id of the Todo the POST above created, so send that first.
 @todoId = {{createTodo.response.body.$.id}}
 
