@@ -25,7 +25,8 @@ public static class TodoEndpoints
     {
         var todos = await db.Todos
             .OrderBy(t => t.Position)
-            .Select(t => ToResponse(t))
+            // Inline, not ToResponse: EF can turn this into SQL selecting only these columns.
+            .Select(t => new TodoResponse(t.Id, t.Title, t.Description, t.Status))
             .ToListAsync();
 
         return TypedResults.Ok(todos);

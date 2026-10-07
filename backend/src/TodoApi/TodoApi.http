@@ -17,7 +17,7 @@ Content-Type: application/json
 ###
 
 # The requests below use the id of the Todo the POST above created, so send that first.
-@todoId = {{createTodo.response.body.id}}
+@todoId = {{createTodo.response.body.$.id}}
 
 GET {{TodoApi_HostAddress}}/api/todos/{{todoId}}
 Accept: application/json
