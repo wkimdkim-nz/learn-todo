@@ -1,6 +1,7 @@
 {
   "recommendations": [
     "ms-dotnettools.csdevkit",
-    "humao.rest-client"
+    "humao.rest-client",
+    "oxc.oxc-vscode"
   ]
 }
