@@ -103,9 +103,7 @@ public class TodoEndpointsTests : IAsyncDisposable
         var response = await client.GetAsync($"/api/todos/{Guid.NewGuid()}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
-        var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).RootElement;
-        Assert.Equal(404, problem.GetProperty("status").GetInt32());
+        Assert.Equal(404, (await ReadProblem(response)).GetProperty("status").GetInt32());
     }
 
     [Fact]
@@ -135,7 +133,7 @@ public class TodoEndpointsTests : IAsyncDisposable
         var created = await CreateTodo("Buy milk");
 
         var response = await client.PutAsJsonAsync(
-            $"/api/todos/{created.Id}", new UpdateTodoRequest("Buy milk", new string('a', 2001)),
+            $"/api/todos/{created.Id}", new UpdateTodoRequest("Buy milk", new string('a', Todo.DescriptionMaxLength + 1)),
             JsonOptions, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);

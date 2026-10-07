@@ -14,7 +14,7 @@ builder.Services.AddProblemDetails(options =>
     options.CustomizeProblemDetails = context =>
     {
         // .NET 10's validation keys errors by C# name ("Title"), unlike the camelCase JSON.
-        // Delete this rewrite once .NET 12 keys them by JSON name itself.
+        // Delete this rewrite once .NET keys them by JSON name itself.
         if (context.ProblemDetails is HttpValidationProblemDetails validation)
         {
             validation.Errors = validation.Errors.ToDictionary(
