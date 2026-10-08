@@ -3,7 +3,7 @@
   "tasks": [
     {
       "label": "dev",
-      "dependsOn": ["api", "web"],
+      "dependsOn": ["api", "frontend"],
       "problemMatcher": [],
       "group": {
         "kind": "build",
@@ -13,7 +13,7 @@
     {
       "label": "api",
       "type": "shell",
-      "command": "dotnet watch --project backend/src/TodoApi",
+      "command": "dotnet watch --project ${workspaceFolder}/backend/src/TodoApi",
       "isBackground": true,
       "problemMatcher": [],
       "presentation": {
@@ -21,7 +21,7 @@
       }
     },
     {
-      "label": "web",
+      "label": "frontend",
       "type": "shell",
       "command": "npm run dev",
       "options": {

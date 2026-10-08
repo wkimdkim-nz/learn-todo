@@ -9,7 +9,7 @@ export default defineConfig({
     port: 5173,
     // Fail if 5173 is taken, rather than quietly moving to 5174.
     strictPort: true,
-    // The browser only talks to Vite. Vite forwards /api/* to the API, so the API needs no CORS.
+    // Forward /api to the API, so the browser only talks to Vite and the API needs no CORS.
     proxy: {
       "/api": "http://localhost:5080",
     },
