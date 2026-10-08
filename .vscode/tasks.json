@@ -1,0 +1,37 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev",
+      "dependsOn": ["api", "frontend"],
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "api",
+      "type": "shell",
+      "command": "dotnet watch --project ${workspaceFolder}/backend/src/TodoApi",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "group": "dev"
+      }
+    },
+    {
+      "label": "frontend",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "group": "dev"
+      }
+    }
+  ]
+}
