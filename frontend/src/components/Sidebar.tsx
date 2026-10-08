@@ -21,7 +21,7 @@ type SectionLabelProps = {
 
 function SectionLabel({ children }: SectionLabelProps) {
   return (
-    <div className="mb-1 px-2 text-[11px] font-semibold tracking-wider text-stone-400 uppercase">
+    <div className="mb-1 px-2 text-[11px] font-semibold tracking-wider text-stone-600 uppercase">
       {children}
     </div>
   );

@@ -43,7 +43,7 @@ function App() {
       </main>
 
       <section className="w-96 shrink-0 border-l border-stone-200 bg-white p-6">
-        <p className="mt-24 text-center text-sm text-stone-400">
+        <p className="mt-24 text-center text-sm text-stone-500">
           Select a Todo to see and edit it.
         </p>
       </section>

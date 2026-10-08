@@ -22,16 +22,19 @@ function TodoRow({ todo }: TodoRowProps) {
   const completed = todo.status === "Completed";
 
   return (
-    <li className="flex items-center gap-3 rounded-md px-3 py-2">
-      <input type="checkbox" className="size-4 accent-indigo-600" checked={completed} readOnly />
-      <span className={`flex-1 truncate text-sm ${completed ? "text-stone-400 line-through" : ""}`}>
-        {todo.title}
-        {todo.description && (
-          <span className="ml-2 text-xs text-stone-400" title="Has a Description">
-            ¶
-          </span>
-        )}
-      </span>
+    <li className="flex items-center gap-2 rounded-md px-3 py-2">
+      {/* The label wraps the checkbox so the Title becomes its accessible name. */}
+      <label className="flex min-w-0 items-center gap-3">
+        <input type="checkbox" className="size-4 accent-indigo-600" checked={completed} readOnly />
+        <span className={`truncate text-sm ${completed ? "text-stone-500 line-through" : ""}`}>
+          {todo.title}
+        </span>
+      </label>
+      {todo.description && (
+        <span className="text-xs text-stone-500" title="Has a Description">
+          ¶
+        </span>
+      )}
     </li>
   );
 }
