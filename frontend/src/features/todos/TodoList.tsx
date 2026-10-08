@@ -2,10 +2,11 @@ import { useGetTodosQuery } from "./todosApi";
 import type { Todo } from "./types";
 
 export function TodoList() {
-  const { data: todos, isLoading, isFetching, isError, refetch } = useGetTodosQuery();
+  const { data: todos, isFetching, isError, refetch } = useGetTodosQuery();
 
-  // isLoading is only the first load, before there is any list to show.
-  if (isLoading) {
+  // Not isLoading: it is false for a Retry after a failed first load, which
+  // would leave the pane blank while the request is in flight.
+  if (!todos && isFetching) {
     return (
       <p role="status" className="px-6 py-4 text-sm text-stone-500">
         Loading Todos…
@@ -13,13 +14,15 @@ export function TodoList() {
     );
   }
 
+  const hasTodos = todos !== undefined && todos.length > 0;
+
   return (
     <div className="flex-1 overflow-auto px-3 py-2">
       {isError && <LoadError onRetry={() => refetch()} />}
       {!isError && todos?.length === 0 && (
         <p className="px-3 py-2 text-sm text-stone-500">No Todos yet.</p>
       )}
-      {todos && todos.length > 0 && (
+      {hasTodos && (
         // A refetch keeps the previous list on screen, dimmed until the new one arrives.
         <ul
           aria-busy={isFetching}
