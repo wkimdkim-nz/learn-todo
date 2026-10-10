@@ -1,16 +1,61 @@
+import { useGetTodosQuery } from "./todosApi";
 import type { Todo } from "./types";
 
-type TodoListProps = {
-  todos: Todo[];
+export function TodoList() {
+  const { data: todos, isFetching, isError, refetch } = useGetTodosQuery();
+
+  // Not isLoading: it is false for a Retry after a failed first load, which
+  // would leave the pane blank while the request is in flight.
+  if (!todos && isFetching) {
+    return (
+      <p role="status" className="px-6 py-4 text-sm text-stone-500">
+        Loading Todos…
+      </p>
+    );
+  }
+
+  const hasTodos = todos !== undefined && todos.length > 0;
+
+  return (
+    <div className="flex-1 overflow-auto px-3 py-2">
+      {isError && <LoadError onRetry={() => refetch()} />}
+      {!isError && todos?.length === 0 && (
+        <p className="px-3 py-2 text-sm text-stone-500">No Todos yet.</p>
+      )}
+      {hasTodos && (
+        // A refetch keeps the previous list on screen, dimmed until the new one arrives.
+        <ul
+          aria-busy={isFetching}
+          className={`transition-opacity ${isFetching ? "opacity-60" : ""}`}
+        >
+          {todos.map((todo) => (
+            <TodoRow key={todo.id} todo={todo} />
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+type LoadErrorProps = {
+  onRetry: () => void;
 };
 
-export function TodoList({ todos }: TodoListProps) {
+function LoadError({ onRetry }: LoadErrorProps) {
   return (
-    <ul className="flex-1 overflow-auto px-3 py-2">
-      {todos.map((todo) => (
-        <TodoRow key={todo.id} todo={todo} />
-      ))}
-    </ul>
+    <div
+      role="alert"
+      className="mb-2 flex items-center justify-between gap-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+    >
+      <span>Couldn't load your Todos.</span>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="rounded-md bg-white px-3 py-1 font-medium shadow-sm ring-1 ring-red-200 hover:bg-red-100"
+      >
+        Retry
+      </button>
+    </div>
   );
 }
 
