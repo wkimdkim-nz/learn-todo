@@ -4,7 +4,7 @@ import { renderWithProviders } from "../utils/test-utils";
 import { Sidebar } from "./Sidebar";
 
 describe("Sidebar", () => {
-  it("lists the Status filters in the navigation", () => {
+  it("lists the Status selection options in the navigation", () => {
     renderWithProviders(<Sidebar />);
 
     const nav = screen.getByRole("navigation");

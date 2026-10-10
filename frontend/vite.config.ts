@@ -17,7 +17,6 @@ export default defineConfig({
   },
   // Vitest reads this file too, so tests get the same plugins as the app.
   test: {
-    // A simulated browser DOM in Node, so components can render.
     environment: "jsdom",
     setupFiles: "./src/setupTests.ts",
   },
