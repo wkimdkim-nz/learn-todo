@@ -1,5 +1,5 @@
 import { apiSlice } from "../../app/apiSlice";
-import type { Todo } from "./types";
+import type { Status, Todo } from "./types";
 
 export const todosApi = apiSlice.injectEndpoints({
   endpoints: (build) => ({
@@ -7,7 +7,12 @@ export const todosApi = apiSlice.injectEndpoints({
       query: () => "/todos",
       providesTags: ["Todo"],
     }),
+    setStatus: build.mutation<Todo, { id: string; status: Status }>({
+      query: ({ id, status }) => ({ url: `/todos/${id}/status`, method: "PUT", body: { status } }),
+      // Marks every cached Todo list stale, so each one refetches.
+      invalidatesTags: ["Todo"],
+    }),
   }),
 });
 
-export const { useGetTodosQuery } = todosApi;
+export const { useGetTodosQuery, useSetStatusMutation } = todosApi;

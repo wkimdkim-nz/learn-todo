@@ -1,4 +1,4 @@
-import type { Todo } from "../features/todos/types";
+import type { Status, Todo } from "../features/todos/types";
 
 // The fake API's data: Todos held in memory. Tests seed it, the handlers
 // answer from it, and setupTests resets it after each test.
@@ -17,6 +17,15 @@ export const db = {
       ...override,
     }));
     todos.push(...seeded);
+  },
+
+  // Returns the changed Todo, or undefined when there's no Todo with that id.
+  setStatus(id: string, status: Status) {
+    const todo = todos.find((t) => t.id === id);
+    if (todo) {
+      todo.status = status;
+    }
+    return todo;
   },
 
   reset() {

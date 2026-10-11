@@ -1,8 +1,10 @@
-import { useGetTodosQuery } from "./todosApi";
+import { useGetTodosQuery, useSetStatusMutation } from "./todosApi";
 import type { Todo } from "./types";
 
 export function TodoList() {
   const { data: todos, isFetching, isError, refetch } = useGetTodosQuery();
+  // One mutation for the whole list, so a failed change shows one error above it.
+  const [setStatus, statusChange] = useSetStatusMutation();
 
   // Not isLoading: it is false for a Retry after a failed first load, which
   // would leave the pane blank while the request is in flight.
@@ -19,6 +21,15 @@ export function TodoList() {
   return (
     <div className="flex-1 overflow-auto px-3 py-2">
       {isError && <LoadError onRetry={() => refetch()} />}
+      {/* Stays until the next change starts, which resets the mutation's state. */}
+      {statusChange.isError && (
+        <p
+          role="alert"
+          className="mb-2 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+        >
+          Couldn't change that Todo's Status.
+        </p>
+      )}
       {!isError && todos?.length === 0 && (
         <p className="px-3 py-2 text-sm text-stone-500">No Todos yet.</p>
       )}
@@ -29,7 +40,17 @@ export function TodoList() {
           className={`transition-opacity ${isFetching ? "opacity-60" : ""}`}
         >
           {todos.map((todo) => (
-            <TodoRow key={todo.id} todo={todo} />
+            <TodoRow
+              key={todo.id}
+              todo={todo}
+              pending={statusChange.isLoading && statusChange.originalArgs?.id === todo.id}
+              onToggle={() =>
+                setStatus({
+                  id: todo.id,
+                  status: todo.status === "Completed" ? "Active" : "Completed",
+                })
+              }
+            />
           ))}
         </ul>
       )}
@@ -61,16 +82,24 @@ function LoadError({ onRetry }: LoadErrorProps) {
 
 type TodoRowProps = {
   todo: Todo;
+  pending: boolean;
+  onToggle: () => void;
 };
 
-function TodoRow({ todo }: TodoRowProps) {
+function TodoRow({ todo, pending, onToggle }: TodoRowProps) {
   const completed = todo.status === "Completed";
 
   return (
     <li className="flex items-center gap-2 rounded-md px-3 py-2">
       {/* The label wraps the checkbox so the Title becomes its accessible name. */}
       <label className="flex min-w-0 items-center gap-3">
-        <input type="checkbox" className="size-4 accent-indigo-600" checked={completed} readOnly />
+        <input
+          type="checkbox"
+          className="size-4 accent-indigo-600 disabled:opacity-50"
+          checked={completed}
+          disabled={pending}
+          onChange={onToggle}
+        />
         <span className={`truncate text-sm ${completed ? "text-stone-500 line-through" : ""}`}>
           {todo.title}
         </span>
