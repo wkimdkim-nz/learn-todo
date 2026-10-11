@@ -10,4 +10,5 @@ public class Todo
     public string? Description { get; set; }
     public Status Status { get; set; }
     public int Position { get; set; }
+    public ICollection<Tag> Tags { get; set; } = [];
 }

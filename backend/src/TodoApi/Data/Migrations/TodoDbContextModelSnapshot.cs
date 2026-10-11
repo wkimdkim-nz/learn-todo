@@ -17,6 +17,41 @@ namespace TodoApi.Data.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.12");
 
+            modelBuilder.Entity("TagTodo", b =>
+                {
+                    b.Property<Guid>("TagsId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TodosId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("TagsId", "TodosId");
+
+                    b.HasIndex("TodosId");
+
+                    b.ToTable("TagTodo");
+                });
+
+            modelBuilder.Entity("TodoApi.Entities.Tag", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT")
+                        .UseCollation("NOCASE");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Tags");
+                });
+
             modelBuilder.Entity("TodoApi.Entities.Todo", b =>
                 {
                     b.Property<Guid>("Id")
@@ -44,6 +79,21 @@ namespace TodoApi.Data.Migrations
                     b.HasIndex("Position");
 
                     b.ToTable("Todos");
+                });
+
+            modelBuilder.Entity("TagTodo", b =>
+                {
+                    b.HasOne("TodoApi.Entities.Tag", null)
+                        .WithMany()
+                        .HasForeignKey("TagsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TodoApi.Entities.Todo", null)
+                        .WithMany()
+                        .HasForeignKey("TodosId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }
