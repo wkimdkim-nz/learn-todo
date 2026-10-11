@@ -44,6 +44,35 @@ Content-Type: application/json
 
 ###
 
+# Sets the Status, never toggles it: sending this twice leaves the Todo Completed.
+PUT {{TodoApi_HostAddress}}/api/todos/{{todoId}}/status
+Content-Type: application/json
+
+{
+  "status": "Completed"
+}
+
+###
+
+PUT {{TodoApi_HostAddress}}/api/todos/{{todoId}}/status
+Content-Type: application/json
+
+{
+  "status": "Active"
+}
+
+###
+
+# Only "Active" or "Completed", spelled exactly, is accepted: this is a 400 with a status error.
+PUT {{TodoApi_HostAddress}}/api/todos/{{todoId}}/status
+Content-Type: application/json
+
+{
+  "status": "completed"
+}
+
+###
+
 DELETE {{TodoApi_HostAddress}}/api/todos/{{todoId}}
 
 ###

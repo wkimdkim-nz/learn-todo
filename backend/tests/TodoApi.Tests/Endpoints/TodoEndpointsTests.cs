@@ -100,6 +100,55 @@ public class TodoEndpointsTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task SetStatus_CompletedTwice_StaysCompleted()
+    {
+        var created = await CreateTodo("Buy milk");
+
+        await SetStatus(created.Id, "Completed");
+        var response = await SetStatus(created.Id, "Completed");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var expected = created with { Status = Status.Completed };
+        Assert.Equal(expected, await response.Content.ReadFromJsonAsync<TodoResponse>(JsonOptions, TestContext.Current.CancellationToken));
+        Assert.Equal(expected, (await GetTodos()).Single());
+    }
+
+    [Fact]
+    public async Task SetStatus_CompletedThenActive_KeepsPosition()
+    {
+        await CreateTodo("First");
+        var second = await CreateTodo("Second");
+        await CreateTodo("Third");
+
+        (await SetStatus(second.Id, "Completed")).EnsureSuccessStatusCode();
+        Assert.Equal(["First", "Second", "Third"], (await GetTodos()).Select(t => t.Title));
+
+        (await SetStatus(second.Id, "Active")).EnsureSuccessStatusCode();
+        var todos = await GetTodos();
+        Assert.Equal(["First", "Second", "Third"], todos.Select(t => t.Title));
+        Assert.All(todos, t => Assert.Equal(Status.Active, t.Status));
+    }
+
+    [Theory]
+    [InlineData("""{"status":"Done"}""")]
+    [InlineData("""{"status":"completed"}""")]
+    [InlineData("""{"status":"Active, Completed"}""")]
+    [InlineData("{}")]
+    public async Task SetStatus_NotExactlyActiveOrCompleted_Returns400WithStatusError(string body)
+    {
+        var created = await CreateTodo("Buy milk");
+
+        var response = await client.PutAsync(
+            $"/api/todos/{created.Id}/status", new StringContent(body, Encoding.UTF8, "application/json"),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var errors = (await ReadProblem(response)).GetProperty("errors");
+        Assert.Equal(["status"], errors.EnumerateObject().Select(p => p.Name));
+        Assert.Equal(Status.Active, (await GetTodos()).Single().Status);
+    }
+
+    [Fact]
     public async Task GetTodo_UnknownId_Returns404ProblemDetails()
     {
         var response = await client.GetAsync($"/api/todos/{Guid.NewGuid()}", TestContext.Current.CancellationToken);
@@ -184,6 +233,10 @@ public class TodoEndpointsTests : IAsyncDisposable
 
         return (await response.Content.ReadFromJsonAsync<TodoResponse>(JsonOptions, TestContext.Current.CancellationToken))!;
     }
+
+    Task<HttpResponseMessage> SetStatus(Guid id, string status) =>
+        client.PutAsJsonAsync(
+            $"/api/todos/{id}/status", new SetStatusRequest(status), JsonOptions, TestContext.Current.CancellationToken);
 
     async Task<List<TodoResponse>> GetTodos() =>
         (await client.GetFromJsonAsync<List<TodoResponse>>("/api/todos", JsonOptions, TestContext.Current.CancellationToken))!;
