@@ -23,7 +23,7 @@ public static class TagEndpoints
     static async Task<Ok<List<TagResponse>>> GetTags(TodoDbContext db)
     {
         var tags = await db.Tags
-            // Name's NOCASE collation makes this sort ignore case: "home" comes before "Work".
+            // Ignores case, thanks to NOCASE: "home" comes before "Work".
             .OrderBy(t => t.Name)
             .Select(t => new TagResponse(t.Id, t.Name))
             .ToListAsync();
@@ -76,8 +76,8 @@ public static class TagEndpoints
         return deleted == 0 ? TypedResults.NotFound() : TypedResults.NoContent();
     }
 
-    // Name's NOCASE collation makes this == ignore case. The unique index is the backstop: if two
-    // requests race past this check, the second save fails rather than storing a duplicate.
+    // Ignores case, thanks to NOCASE. The unique index is the backstop: if two requests race
+    // past this check, the second save fails with a 500 rather than storing a duplicate.
     static Task<Tag?> FindByName(string name, TodoDbContext db) =>
         db.Tags.FirstOrDefaultAsync(t => t.Name == name);
 

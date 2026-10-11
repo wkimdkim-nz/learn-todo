@@ -20,7 +20,7 @@ public class TodoDbContext(DbContextOptions<TodoDbContext> options) : DbContext(
             todo.HasIndex(t => t.Position);
 
             // No join entity: EF makes the link table itself.
-            todo.HasMany(t => t.Tags).WithMany(t => t.Todos);
+            todo.HasMany(t => t.Tags).WithMany(tag => tag.Todos);
         });
 
         modelBuilder.Entity<Tag>(tag =>
