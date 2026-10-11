@@ -1,5 +1,5 @@
 import { useGetTodosQuery, useSetStatusMutation } from "./todosApi";
-import type { Todo } from "./types";
+import type { Status, Todo } from "./types";
 
 export function TodoList() {
   const { data: todos, isFetching, isError, refetch } = useGetTodosQuery();
@@ -43,13 +43,8 @@ export function TodoList() {
             <TodoRow
               key={todo.id}
               todo={todo}
-              pending={statusChange.isLoading && statusChange.originalArgs?.id === todo.id}
-              onToggle={() =>
-                setStatus({
-                  id: todo.id,
-                  status: todo.status === "Completed" ? "Active" : "Completed",
-                })
-              }
+              saving={statusChange.isLoading && statusChange.originalArgs?.id === todo.id}
+              onSetStatus={(status) => setStatus({ id: todo.id, status })}
             />
           ))}
         </ul>
@@ -82,11 +77,11 @@ function LoadError({ onRetry }: LoadErrorProps) {
 
 type TodoRowProps = {
   todo: Todo;
-  pending: boolean;
-  onToggle: () => void;
+  saving: boolean;
+  onSetStatus: (status: Status) => void;
 };
 
-function TodoRow({ todo, pending, onToggle }: TodoRowProps) {
+function TodoRow({ todo, saving, onSetStatus }: TodoRowProps) {
   const completed = todo.status === "Completed";
 
   return (
@@ -97,8 +92,8 @@ function TodoRow({ todo, pending, onToggle }: TodoRowProps) {
           type="checkbox"
           className="size-4 accent-indigo-600 disabled:opacity-50"
           checked={completed}
-          disabled={pending}
-          onChange={onToggle}
+          disabled={saving}
+          onChange={() => onSetStatus(completed ? "Active" : "Completed")}
         />
         <span className={`truncate text-sm ${completed ? "text-stone-500 line-through" : ""}`}>
           {todo.title}

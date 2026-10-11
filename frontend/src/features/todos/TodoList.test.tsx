@@ -53,7 +53,7 @@ describe("TodoList", () => {
     expect(await screen.findByRole("checkbox", { name: "Buy milk", checked: false })).toBeEnabled();
   });
 
-  it("disables a Todo's checkbox while its change is pending", async () => {
+  it("disables a Todo's checkbox while its Status change is saving", async () => {
     db.seedTodos({ title: "Buy milk" }, { title: "Walk the dog" });
     // Holds the change until the test answers it, then falls through to the
     // normal handler, because a resolver that returns nothing passes the request on.
