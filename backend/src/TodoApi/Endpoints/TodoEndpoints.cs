@@ -83,6 +83,7 @@ public static class TodoEndpoints
             return TypedResults.NotFound();
         }
 
+        // Validation has already limited request.Status to an exact Status name, so this can't throw.
         todo.Status = Enum.Parse<Status>(request.Status);
         await db.SaveChangesAsync();
 
