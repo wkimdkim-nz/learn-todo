@@ -16,6 +16,7 @@ public static class TodoEndpoints
         group.MapPost("/", CreateTodo);
         group.MapGet("/{id:guid}", GetTodo);
         group.MapPut("/{id:guid}", UpdateTodo);
+        group.MapPut("/{id:guid}/status", SetStatus);
         group.MapDelete("/{id:guid}", DeleteTodo);
 
         return app;
@@ -67,6 +68,22 @@ public static class TodoEndpoints
 
         todo.Title = request.Title.Trim();
         todo.Description = TrimOrNull(request.Description);
+        await db.SaveChangesAsync();
+
+        return TypedResults.Ok(ToResponse(todo));
+    }
+
+    // Sets the Status rather than toggling it, so sending the same request twice is safe.
+    // Position is left alone: completing a Todo never moves it.
+    static async Task<Results<Ok<TodoResponse>, NotFound>> SetStatus(Guid id, SetStatusRequest request, TodoDbContext db)
+    {
+        var todo = await db.Todos.FindAsync(id);
+        if (todo is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        todo.Status = Enum.Parse<Status>(request.Status);
         await db.SaveChangesAsync();
 
         return TypedResults.Ok(ToResponse(todo));
