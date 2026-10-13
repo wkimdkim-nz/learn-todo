@@ -66,7 +66,7 @@ public static class TodoEndpoints
     static async Task<Results<Ok<TodoResponse>, NotFound, ValidationProblem>> UpdateTodo(
         Guid id, UpdateTodoRequest request, TodoDbContext db)
     {
-        // Its current Tags must be loaded too: EF can only delete the link rows it knows about.
+        // Loads its current Tags too, so EF knows which link rows to delete when the set is replaced.
         var todo = await FindTodo(id, db);
         if (todo is null)
         {
@@ -81,7 +81,6 @@ public static class TodoEndpoints
 
         todo.Title = request.Title.Trim();
         todo.Description = TrimOrNull(request.Description);
-        // Replaces the set: EF deletes the link rows for Tags that are gone and inserts rows for new ones.
         todo.Tags = tags;
         await db.SaveChangesAsync();
 
@@ -112,7 +111,7 @@ public static class TodoEndpoints
         return deleted == 0 ? TypedResults.NotFound() : TypedResults.NoContent();
     }
 
-    // Each Todo with its Tags sorted by name, ignoring case thanks to NOCASE, the order TodoResponse lists them in.
+    // Each Todo with its Tags sorted by name, the order TodoResponse lists them in.
     static IQueryable<Todo> TodosWithTags(TodoDbContext db) =>
         db.Todos.Include(t => t.Tags.OrderBy(tag => tag.Name));
 

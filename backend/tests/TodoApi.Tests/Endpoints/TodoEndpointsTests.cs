@@ -93,11 +93,12 @@ public class TodoEndpointsTests : IAsyncDisposable
     [Fact]
     public async Task CreateTodo_WithTagIds_ReturnsItsTagsSortedByNameWithDuplicatesIgnored()
     {
-        var work = await CreateTag("work");
-        var errands = await CreateTag("Errands");
+        var work = await CreateTag("Work");
+        var errands = await CreateTag("errands");
 
         var created = await CreateTodo("Buy milk", work.Id, errands.Id, work.Id);
 
+        // A case-sensitive sort would put "Work" first.
         Assert.Equal([errands, work], created.Tags);
         Assert.Equal([errands, work], (await GetTodos()).Single().Tags);
     }
