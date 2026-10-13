@@ -4,29 +4,28 @@ import type { Status, Todo } from "../features/todos/types";
 // answer from it, and setupTests resets it after each test.
 let todos: Todo[] = [];
 
+// A new Todo with the API's defaults, overridden by whatever is given.
+function newTodo(override: Partial<Todo>): Todo {
+  return {
+    id: crypto.randomUUID(),
+    title: "A Todo",
+    description: null,
+    status: "Active",
+    ...override,
+  };
+}
+
 export const db = {
   allTodos: () => todos,
 
   // Adds a Todo for each set of overrides, filling in the rest.
   seedTodos(...overrides: Partial<Todo>[]) {
-    const seeded = overrides.map((override) => ({
-      id: crypto.randomUUID(),
-      title: "A Todo",
-      description: null,
-      status: "Active" as const,
-      ...override,
-    }));
-    todos.push(...seeded);
+    todos.push(...overrides.map(newTodo));
   },
 
   // Adds a Todo last, the way the API does, and returns it.
   addTodo(title: string) {
-    const todo: Todo = {
-      id: crypto.randomUUID(),
-      title: title.trim(),
-      description: null,
-      status: "Active",
-    };
+    const todo = newTodo({ title: title.trim() });
     todos.push(todo);
     return todo;
   },

@@ -8,6 +8,17 @@ export const handlers = [
 
   http.post<never, { title: string }>("/api/todos", async ({ request }) => {
     const { title } = await request.json();
+    // The API's 400 for a blank Title, so tests see the same body the app does.
+    if (!title.trim()) {
+      return HttpResponse.json(
+        {
+          title: "One or more validation errors occurred.",
+          status: 400,
+          errors: { title: ["The Title field is required."] },
+        },
+        { status: 400 },
+      );
+    }
     return HttpResponse.json(db.addTodo(title), { status: 201 });
   }),
 

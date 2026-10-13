@@ -57,20 +57,6 @@ describe("QuickAdd", () => {
   });
 
   it("shows the API's message for a rejected Title under the input, and keeps what was typed", async () => {
-    // The API's 400 body for a blank Title: a ValidationProblem keyed by field.
-    server.use(
-      http.post("/api/todos", () =>
-        HttpResponse.json(
-          {
-            title: "One or more validation errors occurred.",
-            status: 400,
-            errors: { title: ["The Title field is required."] },
-          },
-          { status: 400 },
-        ),
-      ),
-    );
-
     const { user } = renderWithProviders(<QuickAdd />);
 
     const input = screen.getByRole("textbox", { name: "Add a Todo" });
