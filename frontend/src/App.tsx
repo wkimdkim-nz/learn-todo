@@ -1,4 +1,5 @@
 import { Sidebar } from "./components/Sidebar";
+import { QuickAdd } from "./features/todos/QuickAdd";
 import { TodoList } from "./features/todos/TodoList";
 
 function App() {
@@ -10,6 +11,7 @@ function App() {
         <header className="border-b border-stone-200 px-6 py-4">
           <h1 className="text-xl font-semibold">Todos</h1>
         </header>
+        <QuickAdd />
         <TodoList />
       </main>
 

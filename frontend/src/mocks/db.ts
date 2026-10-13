@@ -19,6 +19,18 @@ export const db = {
     todos.push(...seeded);
   },
 
+  // Adds a Todo last, the way the API does, and returns it.
+  addTodo(title: string) {
+    const todo: Todo = {
+      id: crypto.randomUUID(),
+      title: title.trim(),
+      description: null,
+      status: "Active",
+    };
+    todos.push(todo);
+    return todo;
+  },
+
   // Returns the changed Todo, or undefined when there's no Todo with that id.
   setStatus(id: string, status: Status) {
     const todo = todos.find((t) => t.id === id);
