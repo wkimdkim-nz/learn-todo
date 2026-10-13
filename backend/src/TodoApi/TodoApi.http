@@ -82,3 +82,45 @@ GET {{TodoApi_HostAddress}}/api/todos/{{todoId}}
 Accept: application/json
 
 ###
+
+GET {{TodoApi_HostAddress}}/api/tags
+Accept: application/json
+
+###
+
+# @name createTag
+POST {{TodoApi_HostAddress}}/api/tags
+Content-Type: application/json
+
+{
+  "name": "  work  "
+}
+
+###
+
+# The same name in any case is a 409 with a ProblemDetails detail naming the existing Tag.
+POST {{TodoApi_HostAddress}}/api/tags
+Content-Type: application/json
+
+{
+  "name": "WORK"
+}
+
+###
+
+# The requests below use the id of the Tag the POST createTag above made, so send that first.
+@tagId = {{createTag.response.body.$.id}}
+
+# A case-only rename is allowed: it isn't a duplicate of itself.
+PUT {{TodoApi_HostAddress}}/api/tags/{{tagId}}
+Content-Type: application/json
+
+{
+  "name": "Work"
+}
+
+###
+
+DELETE {{TodoApi_HostAddress}}/api/tags/{{tagId}}
+
+###

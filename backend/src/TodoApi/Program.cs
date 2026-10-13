@@ -52,5 +52,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapTodoEndpoints();
+app.MapTagEndpoints();
 
 app.Run();
