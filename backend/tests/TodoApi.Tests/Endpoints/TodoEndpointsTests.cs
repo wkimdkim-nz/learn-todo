@@ -37,7 +37,7 @@ public class TodoEndpointsTests : IAsyncDisposable
     public async Task CreateTodo_ValidTitle_Returns201WithLocation()
     {
         var response = await client.PostAsJsonAsync(
-            "/api/todos", new CreateTodoRequest("Buy milk", null), JsonOptions, TestContext.Current.CancellationToken);
+            "/api/todos", new CreateTodoRequest("Buy milk", null, []), JsonOptions, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var created = await response.Content.ReadFromJsonAsync<TodoResponse>(JsonOptions, TestContext.Current.CancellationToken);
@@ -59,15 +59,19 @@ public class TodoEndpointsTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task GetTodos_OneTodo_SerializesCamelCaseWithStringStatusAndNoPosition()
+    public async Task GetTodos_OneTodo_SerializesCamelCaseWithStringStatusAndNoPositionAndEmbedsTags()
     {
-        await CreateTodo("Buy milk");
+        var work = await CreateTag("Work");
+        await CreateTodo("Buy milk", work.Id);
 
         var json = await client.GetStringAsync("/api/todos", TestContext.Current.CancellationToken);
 
         var todo = JsonDocument.Parse(json).RootElement.EnumerateArray().Single();
-        Assert.Equal(["id", "title", "description", "status"], todo.EnumerateObject().Select(p => p.Name));
+        Assert.Equal(["id", "title", "description", "status", "tags"], todo.EnumerateObject().Select(p => p.Name));
         Assert.Equal("Active", todo.GetProperty("status").GetString());
+        var tag = todo.GetProperty("tags").EnumerateArray().Single();
+        Assert.Equal(["id", "name"], tag.EnumerateObject().Select(p => p.Name));
+        Assert.Equal("Work", tag.GetProperty("name").GetString());
     }
 
     [Fact]
@@ -76,14 +80,47 @@ public class TodoEndpointsTests : IAsyncDisposable
         var created = await CreateTodo("Buy milk");
 
         var response = await client.PutAsJsonAsync(
-            $"/api/todos/{created.Id}", new UpdateTodoRequest("  Buy oat milk  ", "  From the corner shop  "),
+            $"/api/todos/{created.Id}", new UpdateTodoRequest("  Buy oat milk  ", "  From the corner shop  ", []),
             JsonOptions, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var expected = new TodoResponse(created.Id, "Buy oat milk", "From the corner shop", Status.Active);
-        Assert.Equal(expected, await response.Content.ReadFromJsonAsync<TodoResponse>(JsonOptions, TestContext.Current.CancellationToken));
-        Assert.Equal(expected, await client.GetFromJsonAsync<TodoResponse>(
-            $"/api/todos/{created.Id}", JsonOptions, TestContext.Current.CancellationToken));
+        var expected = new TodoResponse(created.Id, "Buy oat milk", "From the corner shop", Status.Active, []);
+        Assert.Equivalent(expected, await response.Content.ReadFromJsonAsync<TodoResponse>(JsonOptions, TestContext.Current.CancellationToken), strict: true);
+        Assert.Equivalent(expected, await client.GetFromJsonAsync<TodoResponse>(
+            $"/api/todos/{created.Id}", JsonOptions, TestContext.Current.CancellationToken), strict: true);
+    }
+
+    [Fact]
+    public async Task CreateTodo_WithTagIds_ReturnsItsTagsSortedByNameWithDuplicatesIgnored()
+    {
+        var work = await CreateTag("Work");
+        var errands = await CreateTag("errands");
+
+        var created = await CreateTodo("Buy milk", work.Id, errands.Id, work.Id);
+
+        // A case-sensitive sort would put "Work" first.
+        Assert.Equal([errands, work], created.Tags);
+        Assert.Equal([errands, work], (await GetTodos()).Single().Tags);
+    }
+
+    [Fact]
+    public async Task UpdateTodo_NewTagIds_ReplacesTheTagsRatherThanAddingToThem()
+    {
+        var work = await CreateTag("Work");
+        var home = await CreateTag("Home");
+        var errands = await CreateTag("Errands");
+        var created = await CreateTodo("Buy milk", work.Id, home.Id);
+
+        var response = await client.PutAsJsonAsync(
+            $"/api/todos/{created.Id}", new UpdateTodoRequest("Buy milk", null, [home.Id, errands.Id]),
+            JsonOptions, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var updated = await response.Content.ReadFromJsonAsync<TodoResponse>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.Equal([errands, home], updated!.Tags);
+        var fetched = await client.GetFromJsonAsync<TodoResponse>(
+            $"/api/todos/{created.Id}", JsonOptions, TestContext.Current.CancellationToken);
+        Assert.Equal([errands, home], fetched!.Tags);
     }
 
     [Fact]
@@ -100,17 +137,34 @@ public class TodoEndpointsTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task SetStatus_CompletedTwice_StaysCompleted()
+    public async Task DeleteTag_OnTwoTodos_KeepsBothTodosWithoutIt()
     {
-        var created = await CreateTodo("Buy milk");
+        var work = await CreateTag("Work");
+        var home = await CreateTag("Home");
+        await CreateTodo("Buy milk", work.Id, home.Id);
+        await CreateTodo("Call the bank", work.Id);
+
+        (await client.DeleteAsync($"/api/tags/{work.Id}", TestContext.Current.CancellationToken)).EnsureSuccessStatusCode();
+
+        var todos = await GetTodos();
+        Assert.Equal(["Buy milk", "Call the bank"], todos.Select(t => t.Title));
+        Assert.Equal([home], todos[0].Tags);
+        Assert.Empty(todos[1].Tags);
+    }
+
+    [Fact]
+    public async Task SetStatus_CompletedTwice_StaysCompletedAndKeepsItsTags()
+    {
+        var work = await CreateTag("Work");
+        var created = await CreateTodo("Buy milk", work.Id);
 
         await SetStatus(created.Id, "Completed");
         var response = await SetStatus(created.Id, "Completed");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var expected = created with { Status = Status.Completed };
-        Assert.Equal(expected, await response.Content.ReadFromJsonAsync<TodoResponse>(JsonOptions, TestContext.Current.CancellationToken));
-        Assert.Equal(expected, (await GetTodos()).Single());
+        Assert.Equivalent(expected, await response.Content.ReadFromJsonAsync<TodoResponse>(JsonOptions, TestContext.Current.CancellationToken), strict: true);
+        Assert.Equivalent(expected, (await GetTodos()).Single(), strict: true);
     }
 
     [Fact]
@@ -161,7 +215,7 @@ public class TodoEndpointsTests : IAsyncDisposable
     public async Task UpdateTodo_UnknownId_Returns404()
     {
         var response = await client.PutAsJsonAsync(
-            $"/api/todos/{Guid.NewGuid()}", new UpdateTodoRequest("Buy milk", null),
+            $"/api/todos/{Guid.NewGuid()}", new UpdateTodoRequest("Buy milk", null, []),
             JsonOptions, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -171,11 +225,40 @@ public class TodoEndpointsTests : IAsyncDisposable
     public async Task CreateTodo_BlankTitle_Returns400WithTitleError()
     {
         var response = await client.PostAsJsonAsync(
-            "/api/todos", new CreateTodoRequest("   ", null), JsonOptions, TestContext.Current.CancellationToken);
+            "/api/todos", new CreateTodoRequest("   ", null, []), JsonOptions, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var errors = (await ReadProblem(response)).GetProperty("errors");
         Assert.Equal(["title"], errors.EnumerateObject().Select(p => p.Name));
+    }
+
+    [Fact]
+    public async Task CreateTodo_NoTagIds_Returns400WithTagIdsError()
+    {
+        var response = await client.PostAsync(
+            "/api/todos", new StringContent("""{"title":"Buy milk"}""", Encoding.UTF8, "application/json"),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var errors = (await ReadProblem(response)).GetProperty("errors");
+        Assert.Equal(["tagIds"], errors.EnumerateObject().Select(p => p.Name));
+    }
+
+    [Fact]
+    public async Task CreateTodo_UnknownTagId_Returns400NamingItAndCreatesNothing()
+    {
+        var work = await CreateTag("Work");
+        var unknownId = Guid.NewGuid();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/todos", new CreateTodoRequest("Buy milk", null, [work.Id, unknownId]),
+            JsonOptions, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var errors = (await ReadProblem(response)).GetProperty("errors");
+        Assert.Equal(["tagIds"], errors.EnumerateObject().Select(p => p.Name));
+        Assert.Equal([$"No Tag has the id {unknownId}."], errors.GetProperty("tagIds").EnumerateArray().Select(e => e.GetString()));
+        Assert.Empty(await GetTodos());
     }
 
     [Fact]
@@ -184,7 +267,7 @@ public class TodoEndpointsTests : IAsyncDisposable
         var created = await CreateTodo("Buy milk");
 
         var response = await client.PutAsJsonAsync(
-            $"/api/todos/{created.Id}", new UpdateTodoRequest("Buy milk", new string('a', Todo.DescriptionMaxLength + 1)),
+            $"/api/todos/{created.Id}", new UpdateTodoRequest("Buy milk", new string('a', Todo.DescriptionMaxLength + 1), []),
             JsonOptions, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -225,13 +308,22 @@ public class TodoEndpointsTests : IAsyncDisposable
         Assert.DoesNotContain("Todos", problem.GetRawText());
     }
 
-    async Task<TodoResponse> CreateTodo(string title)
+    async Task<TodoResponse> CreateTodo(string title, params Guid[] tagIds)
     {
         var response = await client.PostAsJsonAsync(
-            "/api/todos", new CreateTodoRequest(title, null), JsonOptions, TestContext.Current.CancellationToken);
+            "/api/todos", new CreateTodoRequest(title, null, tagIds), JsonOptions, TestContext.Current.CancellationToken);
         response.EnsureSuccessStatusCode();
 
         return (await response.Content.ReadFromJsonAsync<TodoResponse>(JsonOptions, TestContext.Current.CancellationToken))!;
+    }
+
+    async Task<TagResponse> CreateTag(string name)
+    {
+        var response = await client.PostAsJsonAsync(
+            "/api/tags", new TagNameRequest(name), TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        return (await response.Content.ReadFromJsonAsync<TagResponse>(TestContext.Current.CancellationToken))!;
     }
 
     Task<HttpResponseMessage> SetStatus(Guid id, string status) =>

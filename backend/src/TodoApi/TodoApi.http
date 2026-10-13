@@ -10,7 +10,8 @@ POST {{TodoApi_HostAddress}}/api/todos
 Content-Type: application/json
 
 {
-  "title": "   "
+  "title": "   ",
+  "tagIds": []
 }
 
 ###
@@ -21,7 +22,8 @@ Content-Type: application/json
 
 {
   "title": "  Buy milk  ",
-  "description": "   "
+  "description": "   ",
+  "tagIds": []
 }
 
 ###
@@ -39,7 +41,8 @@ Content-Type: application/json
 
 {
   "title": "Buy oat milk",
-  "description": "From the corner shop"
+  "description": "From the corner shop",
+  "tagIds": []
 }
 
 ###
@@ -121,6 +124,34 @@ Content-Type: application/json
 
 ###
 
+# @name createTaggedTodo
+POST {{TodoApi_HostAddress}}/api/todos
+Content-Type: application/json
+
+{
+  "title": "Write the report",
+  "tagIds": ["{{tagId}}", "{{tagId}}"]
+}
+
+###
+
+# An id that isn't a Tag is a 400 whose tagIds error names it.
+POST {{TodoApi_HostAddress}}/api/todos
+Content-Type: application/json
+
+{
+  "title": "Write the report",
+  "tagIds": ["00000000-0000-0000-0000-000000000000"]
+}
+
+###
+
 DELETE {{TodoApi_HostAddress}}/api/tags/{{tagId}}
+
+###
+
+# After the DELETE above, the Todo is still here, with no Tags.
+GET {{TodoApi_HostAddress}}/api/todos/{{createTaggedTodo.response.body.$.id}}
+Accept: application/json
 
 ###

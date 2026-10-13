@@ -5,4 +5,5 @@ namespace TodoApi.Dtos;
 
 public record CreateTodoRequest(
     [Required, MaxLength(Todo.TitleMaxLength)] string Title,
-    [MaxLength(Todo.DescriptionMaxLength)] string? Description);
+    [MaxLength(Todo.DescriptionMaxLength)] string? Description,
+    [Required] IReadOnlyList<Guid> TagIds);
