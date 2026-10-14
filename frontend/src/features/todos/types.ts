@@ -1,3 +1,5 @@
+import type { Tag } from "../tags/types";
+
 // Mirrors the API's TodoResponse. Status arrives as its name because the API
 // serializes enums as strings.
 export type Status = "Active" | "Completed";
@@ -7,4 +9,6 @@ export type Todo = {
   title: string;
   description: string | null;
   status: Status;
+  // Sorted by name, ignoring case, the way the API embeds them.
+  tags: Tag[];
 };
