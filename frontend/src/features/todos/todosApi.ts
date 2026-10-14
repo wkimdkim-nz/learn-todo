@@ -7,6 +7,10 @@ export const todosApi = apiSlice.injectEndpoints({
       query: () => "/todos",
       providesTags: ["Todo"],
     }),
+    addTodo: build.mutation<Todo, { title: string; tagIds: string[] }>({
+      query: (body) => ({ url: "/todos", method: "POST", body }),
+      invalidatesTags: ["Todo"],
+    }),
     setStatus: build.mutation<Todo, { id: string; status: Status }>({
       query: ({ id, status }) => ({ url: `/todos/${id}/status`, method: "PUT", body: { status } }),
       // Marks every cached Todo list stale, so each one refetches.
@@ -15,4 +19,4 @@ export const todosApi = apiSlice.injectEndpoints({
   }),
 });
 
-export const { useGetTodosQuery, useSetStatusMutation } = todosApi;
+export const { useGetTodosQuery, useAddTodoMutation, useSetStatusMutation } = todosApi;
