@@ -30,4 +30,34 @@ export const handlers = [
       return todo ? HttpResponse.json(todo) : new HttpResponse(null, { status: 404 });
     },
   ),
+
+  http.get("/api/tags", () => HttpResponse.json(db.allTags())),
+
+  http.post<never, { name: string }>("/api/tags", async ({ request }) => {
+    const { name } = await request.json();
+    // The API's 400 for a blank name.
+    if (!name.trim()) {
+      return HttpResponse.json(
+        {
+          title: "One or more validation errors occurred.",
+          status: 400,
+          errors: { name: ["The Name field is required."] },
+        },
+        { status: 400 },
+      );
+    }
+    // The API's 409 for a name taken in any case, naming the Tag that has it.
+    const existing = db.findTag(name);
+    if (existing) {
+      return HttpResponse.json(
+        {
+          title: "Conflict",
+          status: 409,
+          detail: `A Tag named "${existing.name}" already exists.`,
+        },
+        { status: 409 },
+      );
+    }
+    return HttpResponse.json(db.addTag(name), { status: 201 });
+  }),
 ];
