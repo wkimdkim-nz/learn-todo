@@ -83,6 +83,8 @@ function Tags() {
             placeholder="New Tag, Enter to save"
             // Opened by the + click, so the name can be typed straight away.
             autoFocus
+            // Closes when the add succeeds, so a name typed meanwhile would be lost.
+            readOnly={isLoading}
             value={name}
             onChange={(event) => setName(event.target.value)}
             onKeyDown={(event) => event.key === "Escape" && close()}
