@@ -99,16 +99,25 @@ function Tags() {
   );
 }
 
-// The API's 409 body for a name another Tag already has.
-type ConflictProblem = {
+// The parts of the API's ProblemDetails bodies read here: a 409's detail, and a 400's
+// messages keyed by the field they're about.
+type Problem = {
   detail: string;
+  errors: Record<string, string[]>;
 };
 
 // The API's message about the name, or undefined when the add failed for another reason.
 function nameError(error: FetchBaseQueryError | SerializedError) {
-  if ("status" in error && error.status === 409) {
-    // Guarded, because a 409 from elsewhere may have another body, or none.
-    return (error.data as Partial<ConflictProblem> | null)?.detail;
+  if (!("status" in error)) {
+    return undefined;
+  }
+  // Guarded, because an error from elsewhere (a proxy, say) may have another body, or none.
+  const problem = error.data as Partial<Problem> | null;
+  if (error.status === 409) {
+    return problem?.detail;
+  }
+  if (error.status === 400) {
+    return problem?.errors?.name?.[0];
   }
   return undefined;
 }

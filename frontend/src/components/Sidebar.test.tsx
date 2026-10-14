@@ -55,4 +55,14 @@ describe("Sidebar", () => {
     expect(within(tags).queryByRole("textbox")).not.toBeInTheDocument();
     expect(within(tags).queryByRole("alert")).not.toBeInTheDocument();
   });
+
+  it("shows the API's message for a blank name", async () => {
+    const { user } = renderWithProviders(<Sidebar />);
+    const tags = screen.getByRole("region", { name: "Tags" });
+
+    await user.click(within(tags).getByRole("button", { name: "Add a Tag" }));
+    await user.type(within(tags).getByRole("textbox", { name: "New Tag" }), "   {Enter}");
+
+    expect(await within(tags).findByRole("alert")).toHaveTextContent("The Name field is required.");
+  });
 });
